@@ -1,7 +1,7 @@
 {
   "name": "百变棋盘 BoardMix",
   "short_name": "百变棋盘",
-  "description": "适配手机与 iPad 的沉浸式家庭棋盘游戏平台",
+  "description": "适配手机、iPad 与桌面浏览器的沉浸式家庭棋盘游戏平台",
   "lang": "zh-CN",
   "start_url": "/",
   "scope": "/",
