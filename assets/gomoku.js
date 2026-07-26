@@ -2,6 +2,7 @@ import { $, sleep, pick, shuffle, toast, openModal, closeModal, bindTypeLevel, d
 
 const SIZE = 15;
 const EMPTY = -1;
+const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const THEMES = {
   maple:{a:'#e4b978',b:'#9d632e',grid:'rgba(58,37,19,.74)',star:'#4d2e16',last:'#f04646'},
   walnut:{a:'#9b6237',b:'#4c2b18',grid:'rgba(27,14,7,.82)',star:'#21120b',last:'#ffd45b'},
@@ -34,6 +35,7 @@ export class GomokuGame {
     this.over = false;
     this.thinking = false;
     this.winLine = [];
+    this.generation = 0;
     this.bind();
     this.startMatch();
   }
@@ -55,10 +57,11 @@ export class GomokuGame {
   globalGameIndex() { return (this.round - 1) * this.config.games + (this.game - 1); }
   assignColors() { this.colorPlayers = this.config.alternate && this.globalGameIndex()%2 ? [1,0] : [0,1]; }
   startBoard() {
+    const generation=++this.generation,initialTurn=0;
     this.assignColors();
     this.board = Array.from({length:SIZE}, () => Array(SIZE).fill(EMPTY));
     this.moves=[]; this.turn=0; this.over=false; this.thinking=false; this.winLine=[];
-    setThinking('gomokuThinking',false); this.updateUI(); this.draw(); setTimeout(()=>this.maybeCpuTurn(),180);
+    setThinking('gomokuThinking',false); this.updateUI(); this.draw(); setTimeout(()=>{if(generation===this.generation&&initialTurn===this.turn&&!this.over)this.maybeCpuTurn();},180);
   }
 
   currentPlayerIndex() { return this.colorPlayers[this.turn]; }
@@ -79,7 +82,7 @@ export class GomokuGame {
     const line=this.checkWin(x,y,color);
     if (line) { this.winLine=line; this.over=true; this.draw(); this.finishGame(this.colorPlayers[color]); return true; }
     if (this.moves.length===SIZE*SIZE) { this.over=true; this.finishGame(-1); return true; }
-    this.turn=1-this.turn; this.updateUI(); this.draw(); setTimeout(()=>this.maybeCpuTurn(),100); return true;
+    this.turn=1-this.turn; this.updateUI(); this.draw(); const generation=this.generation,turn=this.turn; setTimeout(()=>{if(generation===this.generation&&turn===this.turn&&!this.over)this.maybeCpuTurn();},100); return true;
   }
 
   checkWin(x,y,color,board=this.board) {
@@ -93,22 +96,24 @@ export class GomokuGame {
   }
 
   async finishGame(playerIndex) {
+    const generation=this.generation,finishedRound=this.round,finishedGame=this.game;
     if (playerIndex>=0) { this.roundWins[playerIndex]++; winTone(); } this.updateUI();
     await sleep(380);
+    if(generation!==this.generation||!this.over||finishedRound!==this.round||finishedGame!==this.game)return;
     const p=playerIndex>=0?this.config.players[playerIndex].name:'双方';
     if (this.game < this.config.games) {
-      toast(playerIndex>=0?`${p}赢下本局`:'本局平局'); this.game++; await sleep(900); this.startBoard(); return;
+      toast(playerIndex>=0?`${p}赢下本局`:'本局平局'); this.game++; const nextGame=this.game; await sleep(900); if(generation!==this.generation||!this.over||finishedRound!==this.round||nextGame!==this.game)return; this.startBoard(); return;
     }
     let roundWinner=-1;
     if (this.roundWins[0]!==this.roundWins[1]) roundWinner=this.roundWins[0]>this.roundWins[1]?0:1;
     if (roundWinner>=0) this.matchWins[roundWinner]++;
     if (this.round < this.config.rounds) {
       toast(roundWinner>=0?`${this.config.players[roundWinner].name}赢下第${this.round}回合`:`第${this.round}回合平局`);
-      this.round++; this.game=1; this.roundWins=[0,0]; await sleep(1200); this.startBoard(); return;
+      this.round++; this.game=1; this.roundWins=[0,0]; const nextRound=this.round; await sleep(1200); if(generation!==this.generation||!this.over||nextRound!==this.round||this.game!==1)return; this.startBoard(); return;
     }
     let matchWinner=-1;
     if (this.matchWins[0]!==this.matchWins[1]) matchWinner=this.matchWins[0]>this.matchWins[1]?0:1;
-    openModal(`<h2>${matchWinner>=0?'比赛结束':'整场平局'}</h2><p>${matchWinner>=0?`🏆 ${this.config.players[matchWinner].name} 获得总冠军。`:'双方回合积分相同。'} 最终回合比分 ${this.matchWins[0]} : ${this.matchWins[1]}。</p><div class="modal-actions"><button class="secondary" data-home>返回</button><button class="primary" data-again>再来一场</button></div>`, root=>{
+    openModal(`<h2>${matchWinner>=0?'比赛结束':'整场平局'}</h2><p>${matchWinner>=0?`🏆 ${escapeHtml(this.config.players[matchWinner].name)} 获得总冠军。`:'双方回合积分相同。'} 最终回合比分 ${this.matchWins[0]} : ${this.matchWins[1]}。</p><div class="modal-actions"><button class="secondary" data-home>返回</button><button class="primary" data-again>再来一场</button></div>`, root=>{
       root.querySelector('[data-home]').onclick=closeModal;
       root.querySelector('[data-again]').onclick=()=>{closeModal();this.startMatch();};
     });
@@ -191,8 +196,10 @@ export class GomokuGame {
 
   async maybeCpuTurn() {
     if(this.over||this.thinking||this.currentPlayer().type!=='cpu')return;
+    const generation=this.generation,turn=this.turn,playerIndex=this.currentPlayerIndex();
     this.thinking=true;this.updateUI();setThinking('gomokuThinking',true,`${this.currentPlayer().name}思考中…`);
     await sleep(300+this.currentPlayer().level*90);
+    if(generation!==this.generation||this.over||!this.thinking||turn!==this.turn||playerIndex!==this.currentPlayerIndex()||this.currentPlayer().type!=='cpu')return;
     const move=this.chooseCpuMove(Number(this.currentPlayer().level),this.turn);
     setThinking('gomokuThinking',false);this.thinking=false;
     if(move)this.playMove(move.x,move.y);
@@ -230,7 +237,7 @@ export class GomokuGame {
   openSettings() {
     const p=this.config.players;
     openModal(`<h2>五子棋设置</h2><p>每个座位可设为真人或电脑。1级会故意走得很随意；5级会进行更深的威胁计算。</p><div class="settings-grid">
-      ${p.map((x,i)=>`<div class="settings-section"><h3>${i?'玩家二':'玩家一'}</h3><div class="setting-row"><label>名称<input data-name="${i}" maxlength="10" value="${x.name}"></label><label>类型<select class="player-type" data-player="${i}">${typeOptions(x.type)}</select></label><label>难度<select data-level-for="${i}">${difficultyOptions(x.level)}</select></label></div></div>`).join('')}
+      ${p.map((x,i)=>`<div class="settings-section"><h3>${i?'玩家二':'玩家一'}</h3><div class="setting-row"><label>名称<input data-name="${i}" maxlength="10" value="${escapeHtml(x.name)}"></label><label>类型<select class="player-type" data-player="${i}">${typeOptions(x.type)}</select></label><label>难度<select data-level-for="${i}">${difficultyOptions(x.level)}</select></label></div></div>`).join('')}
       <label>总回合数<select id="gSetRounds">${[1,3,5].map(n=>`<option ${n===Number(this.config.rounds)?'selected':''}>${n}</option>`).join('')}</select></label>
       <label>每回合局数<select id="gSetGames">${[1,3,5,7].map(n=>`<option ${n===Number(this.config.games)?'selected':''}>${n}</option>`).join('')}</select></label>
       <label>棋盘主题<select id="gSetTheme">${Object.keys(THEMES).map(k=>`<option value="${k}" ${k===this.config.theme?'selected':''}>${({maple:'枫木',walnut:'胡桃木',jade:'青玉',ink:'水墨'})[k]}</option>`).join('')}</select></label>

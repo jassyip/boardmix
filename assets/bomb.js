@@ -3,13 +3,14 @@ import { $, sleep, pick, shuffle, toast, openModal, closeModal, bindTypeLevel, d
 const N=9, TREASURE=[4,4], THEMES=['cyber','forest','candy'];
 const key=(x,y)=>`${x},${y}`;
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+const escapeHtml=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
 export class BombGame{
   constructor(prefs,onPrefs){
     this.onPrefs=onPrefs;
     this.config={theme:'cyber',players:[{name:'红方',type:'human',level:1},{name:'蓝方',type:'cpu',level:3}],...(prefs||{})};
     if(!Array.isArray(this.config.players))this.config.players=[{name:'红方',type:'human',level:1},{name:'蓝方',type:'cpu',level:3}];
-    this.boardEl=$('#bombBoard');this.frame=$('#bombFrame');this.bind();this.restart();
+    this.generation=0;this.boardEl=$('#bombBoard');this.frame=$('#bombFrame');this.bind();this.restart();
   }
   bind(){
     this.boardEl.addEventListener('click',e=>{const cell=e.target.closest('.bomb-cell');if(!cell||this.over||this.thinking||this.currentPlayer().type==='cpu')return;this.move(Number(cell.dataset.x),Number(cell.dataset.y));});
@@ -23,7 +24,7 @@ export class BombGame{
   show(){this.render();this.maybeCpuTurn()}
 
   restart(){
-    this.turn=0;this.over=false;this.thinking=false;this.positions=[[0,0],[8,8]];this.lives=[3,3];this.scans=[1,1];this.revealed=new Set([key(0,0),key(8,8),key(...TREASURE)]);this.exploded=new Set();this.visited=[new Set([key(0,0)]),new Set([key(8,8)])];this.generateMap();this.frame.dataset.theme=this.config.theme;setThinking('bombThinking',false);this.render();setTimeout(()=>this.maybeCpuTurn(),220);
+    const generation=++this.generation,initialTurn=0;this.turn=0;this.over=false;this.thinking=false;this.positions=[[0,0],[8,8]];this.lives=[3,3];this.scans=[1,1];this.revealed=new Set([key(0,0),key(8,8),key(...TREASURE)]);this.exploded=new Set();this.visited=[new Set([key(0,0)]),new Set([key(8,8)])];this.generateMap();this.frame.dataset.theme=this.config.theme;setThinking('bombThinking',false);this.render();setTimeout(()=>{if(generation===this.generation&&initialTurn===this.turn&&!this.over)this.maybeCpuTurn();},220);
   }
 
   randomSafePath(start){
@@ -58,9 +59,9 @@ export class BombGame{
     if(this.bombs.has(k)&&!this.exploded.has(k)){this.exploded.add(k);this.lives[p]--;boomTone();toast(`${this.config.players[p].name}踩中炸弹，剩余${this.lives[p]}条生命`);}
     if(this.lives[p]<=0){this.over=true;this.render();this.finish(1-p,`${this.config.players[p].name}生命耗尽`);return true;}
     if(x===4&&y===4){this.over=true;this.render();this.finish(p,`${this.config.players[p].name}抢先抵达宝藏`);return true;}
-    this.turn=1-p;this.render();setTimeout(()=>this.maybeCpuTurn(),150);return true;
+    this.turn=1-p;this.render();const generation=this.generation,turn=this.turn;setTimeout(()=>{if(generation===this.generation&&turn===this.turn&&!this.over)this.maybeCpuTurn();},150);return true;
   }
-  finish(winner,reason){winTone();openModal(`<h2>💎 ${this.config.players[winner].name}获胜</h2><p>${reason}。</p><div class="modal-actions"><button class="secondary" data-close>关闭</button><button class="primary" data-again>新地图</button></div>`,root=>{root.querySelector('[data-close]').onclick=closeModal;root.querySelector('[data-again]').onclick=()=>{closeModal();this.restart();};});}
+  finish(winner,reason){winTone();openModal(`<h2>💎 ${escapeHtml(this.config.players[winner].name)}获胜</h2><p>${escapeHtml(reason)}。</p><div class="modal-actions"><button class="secondary" data-close>关闭</button><button class="primary" data-again>新地图</button></div>`,root=>{root.querySelector('[data-close]').onclick=closeModal;root.querySelector('[data-again]').onclick=()=>{closeModal();this.restart();};});}
   scan(auto=false){
     if(this.over||this.thinking&&!auto)return;
     const p=this.turn;if(this.scans[p]<=0){if(!auto)toast('本局雷达已经使用过');return false;}
@@ -87,9 +88,10 @@ export class BombGame{
   }
   async maybeCpuTurn(){
     if(this.over||this.thinking||this.currentPlayer().type!=='cpu')return;
-    this.thinking=true;this.render();setThinking('bombThinking',true,`${this.currentPlayer().name}分析线索中…`);await sleep(350+this.currentPlayer().level*90);
+    const generation=this.generation,turn=this.turn;this.thinking=true;this.render();setThinking('bombThinking',true,`${this.currentPlayer().name}分析线索中…`);await sleep(350+this.currentPlayer().level*90);
+    if(generation!==this.generation||this.over||!this.thinking||turn!==this.turn||this.currentPlayer().type!=='cpu')return;
     const level=Number(this.currentPlayer().level),legal=this.legalMoves(),risks=legal.map(([x,y])=>this.estimateRisk(x,y));
-    if(this.scans[this.turn]>0&&level>=3&&Math.min(...risks)>.20&&(level===5||Math.random()<.35)){this.scan(true);await sleep(350);}
+    if(this.scans[this.turn]>0&&level>=3&&Math.min(...risks)>.20&&(level===5||Math.random()<.35)){this.scan(true);await sleep(350);if(generation!==this.generation||this.over||!this.thinking||turn!==this.turn||this.currentPlayer().type!=='cpu')return;}
     const m=this.bestPathMove(level);setThinking('bombThinking',false);this.thinking=false;if(m)this.move(m.x,m.y);
   }
 
@@ -107,7 +109,7 @@ export class BombGame{
   }
 
   openSettings(){const p=this.config.players;openModal(`<h2>躲炸弹设置</h2><p>电脑只使用已揭示数字和雷达信息，不会读取隐藏炸弹位置。</p><div class="settings-grid">
-    ${p.map((x,i)=>`<div class="settings-section"><h3>${i?'蓝方':'红方'}</h3><div class="setting-row"><label>名称<input data-name="${i}" maxlength="10" value="${x.name}"></label><label>类型<select class="player-type" data-player="${i}">${typeOptions(x.type)}</select></label><label>难度<select data-level-for="${i}">${difficultyOptions(x.level)}</select></label></div></div>`).join('')}
+    ${p.map((x,i)=>`<div class="settings-section"><h3>${i?'蓝方':'红方'}</h3><div class="setting-row"><label>名称<input data-name="${i}" maxlength="10" value="${escapeHtml(x.name)}"></label><label>类型<select class="player-type" data-player="${i}">${typeOptions(x.type)}</select></label><label>难度<select data-level-for="${i}">${difficultyOptions(x.level)}</select></label></div></div>`).join('')}
     <label class="full">棋盘主题<select id="bSetTheme">${THEMES.map(k=>`<option value="${k}" ${k===this.config.theme?'selected':''}>${({cyber:'深海科技',forest:'森林探险',candy:'糖果迷宫'})[k]}</option>`).join('')}</select></label>
     <div class="full difficulty-note">1级随机冒险；2级会避开明显危险；3级参考数字概率；4级计算风险路径；5级结合雷达、对手距离与概率图。</div>
     </div><div class="modal-actions"><button class="secondary" data-cancel>取消</button><button class="primary" data-save>保存并生成新地图</button></div>`,root=>{bindTypeLevel(root);root.querySelector('[data-cancel]').onclick=closeModal;root.querySelector('[data-save]').onclick=()=>{this.config.players=p.map((old,i)=>({name:root.querySelector(`[data-name="${i}"]`).value.trim()||`${i?'蓝':'红'}方`,type:root.querySelector(`[data-player="${i}"]`).value,level:Number(root.querySelector(`[data-level-for="${i}"]`).value)}));this.config.theme=$('#bSetTheme',root).value;this.persist();closeModal();this.restart();};});}

@@ -17,6 +17,7 @@ const HOME_LANES=[
   [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]]
 ];
 const THEMES=['classic','candy','night'];
+const escapeHtml=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
 export class LudoGame{
   constructor(prefs,onPrefs){
@@ -25,7 +26,7 @@ export class LudoGame{
       {name:'红方',type:'human',level:1},{name:'蓝方',type:'cpu',level:3},{name:'绿方',type:'cpu',level:2},{name:'黄方',type:'cpu',level:2}
     ],...(prefs||{})};
     if(!Array.isArray(this.config.players)||this.config.players.length!==4)this.config.players=COLOR_NAMES.map((name,i)=>({name,type:i?'cpu':'human',level:i?2:1}));
-    this.board=$('#ludoBoard');this.frame=this.board.closest('.ludo-frame');this.cellMap=new Map();this.baseSlots=[];this.buildBoard();this.bind();this.restart();
+    this.generation=0;this.board=$('#ludoBoard');this.frame=this.board.closest('.ludo-frame');this.cellMap=new Map();this.baseSlots=[];this.buildBoard();this.bind();this.restart();
   }
   bind(){
     $('#rollDice').addEventListener('click',()=>this.humanRoll());
@@ -52,10 +53,11 @@ export class LudoGame{
   }
 
   restart(){
+    const generation=++this.generation,initialTurn=0;
     this.pieces=Array.from({length:4},()=>Array.from({length:4},()=>({progress:-1})));
-    this.turn=0;this.roll=null;this.waiting=false;this.rolling=false;this.over=false;this.thinking=false;this.extraRoll=false;this.setDie(1);setThinking('ludoThinking',false);this.applyTheme();this.render();setTimeout(()=>this.maybeCpuTurn(),250);
+    this.turn=0;this.roll=null;this.waiting=false;this.rolling=false;this.over=false;this.thinking=false;this.extraRoll=false;$('#die').classList.remove('rolling');this.setDie(1);setThinking('ludoThinking',false);this.applyTheme();this.render();setTimeout(()=>{if(generation===this.generation&&initialTurn===this.turn&&!this.over)this.maybeCpuTurn();},250);
   }
-  nextTurn(){let n=this.turn;do{n=(n+1)%this.config.count;}while(n>=this.config.count);this.turn=n;this.roll=null;this.waiting=false;this.render();setTimeout(()=>this.maybeCpuTurn(),180);}
+  nextTurn(){let n=this.turn;do{n=(n+1)%this.config.count;}while(n>=this.config.count);this.turn=n;this.roll=null;this.waiting=false;this.render();const generation=this.generation,turn=this.turn;setTimeout(()=>{if(generation===this.generation&&turn===this.turn&&!this.over)this.maybeCpuTurn();},180);}
   legalPieces(player=this.turn,roll=this.roll){if(!roll)return[];return this.pieces[player].map((piece,i)=>({piece,i})).filter(({piece})=>piece.progress<57&&(piece.progress===-1?roll===6:piece.progress+roll<=57)).map(x=>x.i);}
   commonGlobal(player,progress){return (START_INDEX[player]+progress)%52;}
   destination(player,pieceIndex,roll){const p=this.pieces[player][pieceIndex];const progress=p.progress===-1?0:p.progress+roll;return{progress,global:progress<=51?this.commonGlobal(player,progress):null};}
@@ -66,26 +68,27 @@ export class LudoGame{
 
   async humanRoll(){if(this.over||this.rolling||this.waiting||this.thinking||this.currentPlayer().type==='cpu')return;await this.rollForCurrent(false);}
   async rollForCurrent(cpu){
+    const generation=this.generation,player=this.turn;
     this.rolling=true;$('#rollDice').disabled=true;$('#die').classList.add('rolling');
-    for(let i=0;i<7;i++){this.setDie(1+Math.floor(Math.random()*6));await sleep(65);}
+    for(let i=0;i<7;i++){this.setDie(1+Math.floor(Math.random()*6));await sleep(65);if(generation!==this.generation||player!==this.turn||this.over||!this.rolling)return;}
     const value=1+Math.floor(Math.random()*6);this.setDie(value);$('#die').classList.remove('rolling');this.rolling=false;this.roll=value;clickTone();
     const legal=this.legalPieces();this.waiting=legal.length>0;this.render();
-    if(!legal.length){toast(`${this.currentPlayer().name}掷出${value}，无棋可走`);await sleep(650);if(value===6){this.roll=null;this.render();if(cpu)await this.rollForCurrent(true);}else this.nextTurn();return;}
-    if(cpu){await sleep(300);const selected=this.chooseCpuPiece(Number(this.currentPlayer().level),legal);await this.movePiece(selected);return;}
-    if(legal.length===1){await sleep(260);await this.movePiece(legal[0]);}else toast(`掷出${value}，请选择一架飞机`);
+    if(!legal.length){toast(`${this.currentPlayer().name}掷出${value}，无棋可走`);await sleep(650);if(generation!==this.generation||player!==this.turn||this.over||this.roll!==value)return;if(value===6){this.roll=null;this.render();if(cpu)await this.rollForCurrent(true);}else this.nextTurn();return;}
+    if(cpu){await sleep(300);if(generation!==this.generation||player!==this.turn||this.over||!this.waiting||this.roll!==value||this.currentPlayer().type!=='cpu')return;const selected=this.chooseCpuPiece(Number(this.currentPlayer().level),legal);await this.movePiece(selected);return;}
+    if(legal.length===1){await sleep(260);if(generation!==this.generation||player!==this.turn||this.over||!this.waiting||this.roll!==value||this.currentPlayer().type==='cpu')return;await this.movePiece(legal[0]);}else toast(`掷出${value}，请选择一架飞机`);
   }
   selectPiece(index){if(this.currentPlayer().type==='cpu'||!this.waiting||!this.legalPieces().includes(index))return;this.movePiece(index);}
   async movePiece(index){
     if(!this.waiting||this.over)return;
-    const player=this.turn,piece=this.pieces[player][index],roll=this.roll,dest=this.destination(player,index,roll);this.waiting=false;this.thinking=true;setThinking('ludoThinking',true,'飞机移动中…');
-    if(piece.progress===-1){piece.progress=0;moveTone();this.render();await sleep(350);}else{
-      for(let step=0;step<roll;step++){piece.progress++;moveTone();this.render();await sleep(145);}
+    const generation=this.generation,player=this.turn,piece=this.pieces[player][index],roll=this.roll,dest=this.destination(player,index,roll);this.waiting=false;this.thinking=true;setThinking('ludoThinking',true,'飞机移动中…');
+    if(piece.progress===-1){piece.progress=0;moveTone();this.render();await sleep(350);if(generation!==this.generation||player!==this.turn||this.over||!this.thinking||this.pieces[player][index]!==piece)return;}else{
+      for(let step=0;step<roll;step++){piece.progress++;moveTone();this.render();await sleep(145);if(generation!==this.generation||player!==this.turn||this.over||!this.thinking||this.pieces[player][index]!==piece)return;}
     }
     const captured=this.captureTargets(player,dest);captured.forEach(([op,i])=>this.pieces[op][i].progress=-1);if(captured.length)toast(`撞回 ${captured.length} 架飞机`);
     const finished=piece.progress===57;if(finished)toast(`${this.config.players[player].name}有一架飞机到达终点`);
-    if(this.pieces[player].every(p=>p.progress===57)){this.over=true;this.thinking=false;setThinking('ludoThinking',false);this.render();winTone();openModal(`<h2>✈ ${this.config.players[player].name}获胜</h2><p>四架飞机已经全部抵达中央终点。</p><div class="modal-actions"><button class="secondary" data-close>关闭</button><button class="primary" data-again>再来一局</button></div>`,root=>{root.querySelector('[data-close]').onclick=closeModal;root.querySelector('[data-again]').onclick=()=>{closeModal();this.restart();};});return;}
+    if(this.pieces[player].every(p=>p.progress===57)){this.over=true;this.thinking=false;setThinking('ludoThinking',false);this.render();winTone();openModal(`<h2>✈ ${escapeHtml(this.config.players[player].name)}获胜</h2><p>四架飞机已经全部抵达中央终点。</p><div class="modal-actions"><button class="secondary" data-close>关闭</button><button class="primary" data-again>再来一局</button></div>`,root=>{root.querySelector('[data-close]').onclick=closeModal;root.querySelector('[data-again]').onclick=()=>{closeModal();this.restart();};});return;}
     this.thinking=false;setThinking('ludoThinking',false);this.roll=null;
-    if(roll===6){toast(`${this.currentPlayer().name}掷出6，可以再投一次`);this.render();await sleep(500);if(this.currentPlayer().type==='cpu')this.maybeCpuTurn();}
+    if(roll===6){toast(`${this.currentPlayer().name}掷出6，可以再投一次`);this.render();await sleep(500);if(generation!==this.generation||player!==this.turn||this.over||this.roll!==null)return;if(this.currentPlayer().type==='cpu')this.maybeCpuTurn();}
     else this.nextTurn();
   }
 
@@ -108,7 +111,7 @@ export class LudoGame{
   chooseCpuPiece(level,legal){if(level===1)return pick(legal);const ranked=legal.map(i=>({i,score:this.evaluatePiece(this.turn,i,level)})).sort((a,b)=>b.score-a.score);if(level===2)return pick(ranked.slice(0,Math.min(2,ranked.length))).i;return ranked[0].i;}
   async maybeCpuTurn(){
     if(this.over||this.thinking||this.rolling||this.waiting||this.currentPlayer().type!=='cpu')return;
-    this.thinking=true;setThinking('ludoThinking',true,`${this.currentPlayer().name}准备掷骰…`);this.render();await sleep(380+Number(this.currentPlayer().level)*80);this.thinking=false;setThinking('ludoThinking',false);await this.rollForCurrent(true);
+    const generation=this.generation,player=this.turn;this.thinking=true;setThinking('ludoThinking',true,`${this.currentPlayer().name}准备掷骰…`);this.render();await sleep(380+Number(this.currentPlayer().level)*80);if(generation!==this.generation||player!==this.turn||this.over||!this.thinking||this.currentPlayer().type!=='cpu')return;this.thinking=false;setThinking('ludoThinking',false);await this.rollForCurrent(true);
   }
 
   setDie(value){
@@ -118,7 +121,7 @@ export class LudoGame{
   }
   renderPlayers(){
     const box=$('#ludoPlayers');box.innerHTML='';
-    for(let p=0;p<4;p++){const player=this.config.players[p],done=this.pieces[p].filter(x=>x.progress===57).length,home=this.pieces[p].filter(x=>x.progress===-1).length;const chip=document.createElement('div');chip.className=`ludo-mini ${p>=this.config.count?'off':''} ${p===this.turn&&!this.over?'active':''}`;chip.innerHTML=`<span class="avatar ${COLORS[p]}">${p+1}</span><div><b>${player.name}</b><small>${playerTypeLabel(player.type,player.level)} · ⌂${home} ★${done}</small></div>`;box.append(chip);}
+    for(let p=0;p<4;p++){const player=this.config.players[p],done=this.pieces[p].filter(x=>x.progress===57).length,home=this.pieces[p].filter(x=>x.progress===-1).length;const chip=document.createElement('div');chip.className=`ludo-mini ${p>=this.config.count?'off':''} ${p===this.turn&&!this.over?'active':''}`;chip.innerHTML=`<span class="avatar ${COLORS[p]}">${p+1}</span><div><b>${escapeHtml(player.name)}</b><small>${playerTypeLabel(player.type,player.level)} · ⌂${home} ★${done}</small></div>`;box.append(chip);}
   }
   render(){
     this.renderPlayers();
@@ -141,7 +144,7 @@ export class LudoGame{
   openSettings(){const p=this.config.players;openModal(`<h2>经典飞行棋设置</h2><p>四角机场、十字航线、四架飞机。掷到6起飞并获得额外一次投掷，必须用准确点数抵达终点。</p><div class="settings-grid">
     <label>参与人数<select id="lSetCount">${[2,3,4].map(n=>`<option ${n===Number(this.config.count)?'selected':''}>${n}</option>`).join('')}</select></label>
     <label>棋盘主题<select id="lSetTheme">${THEMES.map(k=>`<option value="${k}" ${k===this.config.theme?'selected':''}>${({classic:'经典奶油',candy:'糖果派对',night:'星空霓虹'})[k]}</option>`).join('')}</select></label>
-    ${p.map((x,i)=>`<div class="settings-section"><h3>${COLOR_NAMES[i]}</h3><div class="setting-row"><label>名称<input data-name="${i}" maxlength="10" value="${x.name}"></label><label>类型<select class="player-type" data-player="${i}">${typeOptions(x.type)}</select></label><label>难度<select data-level-for="${i}">${difficultyOptions(x.level)}</select></label></div></div>`).join('')}
+    ${p.map((x,i)=>`<div class="settings-section"><h3>${COLOR_NAMES[i]}</h3><div class="setting-row"><label>名称<input data-name="${i}" maxlength="10" value="${escapeHtml(x.name)}"></label><label>类型<select class="player-type" data-player="${i}">${typeOptions(x.type)}</select></label><label>难度<select data-level-for="${i}">${difficultyOptions(x.level)}</select></label></div></div>`).join('')}
     <div class="full difficulty-note">1级随机选飞机；2级优先起飞和前进；3级会撞机与冲终点；4级考虑安全格和被撞风险；5级综合叠机、威胁、终点与对手位置。</div>
     </div><div class="modal-actions"><button class="secondary" data-cancel>取消</button><button class="primary" data-save>保存并重开</button></div>`,root=>{bindTypeLevel(root);root.querySelector('[data-cancel]').onclick=closeModal;root.querySelector('[data-save]').onclick=()=>{this.config.count=Number($('#lSetCount',root).value);this.config.theme=$('#lSetTheme',root).value;this.config.players=p.map((old,i)=>({name:root.querySelector(`[data-name="${i}"]`).value.trim()||COLOR_NAMES[i],type:root.querySelector(`[data-player="${i}"]`).value,level:Number(root.querySelector(`[data-level-for="${i}"]`).value)}));this.persist();closeModal();this.restart();};});}
 }
