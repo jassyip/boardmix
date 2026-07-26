@@ -1,4 +1,6 @@
 .vercel
 .DS_Store
 *.log
-node_modules
+*.zip
+*.bundle
+node_modules/
