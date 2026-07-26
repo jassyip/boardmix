@@ -1,0 +1,7 @@
+.git
+.github
+.env
+*.md
+*.zip
+*.tar.gz
+.DS_Store
