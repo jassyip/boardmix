@@ -1,30 +1,17 @@
 {
-  "name": "百变棋盘 BoardMix",
-  "short_name": "百变棋盘",
-  "description": "适配手机、iPad 与桌面浏览器的沉浸式家庭棋盘游戏平台",
-  "lang": "zh-CN",
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "any",
-  "background_color": "#171513",
-  "theme_color": "#171513",
-  "icons": [
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
+  "name":"百变棋盘 BoardMix",
+  "short_name":"百变棋盘",
+  "description":"五子棋、躲炸弹和经典飞行棋，支持五级电脑对手。",
+  "lang":"zh-CN",
+  "start_url":"/",
+  "scope":"/",
+  "display":"standalone",
+  "orientation":"any",
+  "background_color":"#0b0d11",
+  "theme_color":"#111827",
+  "icons":[
+    {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"},
+    {"src":"/icons/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
   ]
 }

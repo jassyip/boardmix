@@ -1,124 +1,81 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" name="viewport"/>
-<meta content="yes" name="apple-mobile-web-app-capable"/>
-<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
-<title>百变棋盘 BoardMix · Vercel版</title>
-<link href="/manifest.webmanifest" rel="manifest"/>
-<meta content="#171513" name="theme-color"/><meta content="no-cache" http-equiv="Cache-Control"/><meta content="no-cache" http-equiv="Pragma"/>
-<link href="/icons/icon-192.png" rel="apple-touch-icon"/>
-
-<meta content="适配手机、iPad 与桌面浏览器的沉浸式家庭棋盘游戏平台，包含五子棋、躲炸弹和飞行棋。" name="description"/><link href="/assets/app.css?v=3.1.3" rel="stylesheet"/></head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="BoardMix 家庭棋盘游戏平台：五子棋、躲炸弹和经典飞行棋，支持五级电脑对手。">
+  <title>百变棋盘 BoardMix 3.2</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" href="/assets/app.css?v=3.2.0">
+</head>
 <body>
-<div class="app">
-<header class="topbar">
-<div class="brand"><div aria-hidden="true" class="logo"></div><div><h1>百变棋盘</h1><small>BoardMix · 家庭桌游中心</small></div></div>
-<div class="top-actions"><button class="pill-btn hidden" id="installBtn">安装应用</button><button class="pill-btn" id="homeBtn">⌂ 游戏大厅</button><button aria-label="切换音效" class="icon-btn" id="soundBtn">🔊</button></div>
-</header>
-<main>
-<section class="screen active" id="lobbyScreen">
-<div class="hero">
-<div class="hero-main"><h2>棋盘自动铺满屏幕，围坐就能玩。</h2><p>Vercel 版进入游戏后自动切换沉浸布局，玩家姓名、局数、骰子和操作按钮悬浮在棋盘留白区，不再浪费 iPad 的大屏空间。</p><div class="hero-tags"><span class="hero-tag">自适应满屏</span><span class="hero-tag">局数 / 回合制</span><span class="hero-tag">3D 骰子</span><span class="hero-tag">多套棋盘风格</span></div></div>
-<div class="hero-side"><div><h3>沉浸棋桌 3.1.3</h3><p>横屏、竖屏、手机和 iPad 都会按可见窗口自动计算最大正方形棋盘，不依赖浏览器缩放。</p></div><div class="mini-board"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
-</div>
-<div class="section-title"><div><h3>选择游戏</h3><span>点击后自动进入满屏棋盘</span></div><span>V3.1.3 · Vercel</span></div>
-<div class="game-grid">
-<button class="game-card gomoku" data-game="gomoku"><div class="card-art"><span class="stone black"></span><span class="stone white"></span></div><h4>五子棋</h4><p>可设置双方姓名、每回合局数、总回合数，并统计本回合和整场比分。</p><div class="card-meta"><b>2 人</b><b>多局赛制</b><b>先手轮换</b></div></button>
-<button class="game-card bomb" data-game="bomb"><div class="card-art"><span class="bomb-art">💣</span></div><h4>躲炸弹</h4><p>棋盘自动放大，玩家生命值和雷达操作悬浮在边框区域。</p><div class="card-meta"><b>2 人</b><b>探索</b><b>3 套主题</b></div></button>
-<button class="game-card ludo" data-game="ludo"><div class="card-art"><span class="plane-art">✈️</span></div><h4>飞行棋</h4><p>3D 骰子旋转投掷、飞机逐格飞行、立体飞机棋子和多种棋盘风格。</p><div class="card-meta"><b>2–4 人</b><b>3D 骰子</b><b>4 套主题</b></div></button>
-</div>
-</section>
-<section class="screen game-screen" id="gomokuScreen">
-<div class="game-stage">
-<div class="board-square" id="gomokuSquare">
-<canvas aria-label="五子棋棋盘" height="900" id="gomokuCanvas" width="900"></canvas>
-<div class="floating player-chip left" id="gBlackChip"><span class="chip-avatar black">●</span><div class="chip-copy"><strong id="gBlackName">玩家一</strong><small id="gBlackMeta">本回合 0 · 总回合 0</small></div><span class="chip-score" id="gBlackScore">0</span></div>
-<div class="floating player-chip right" id="gWhiteChip"><span class="chip-score" id="gWhiteScore">0</span><div class="chip-copy"><strong id="gWhiteName">玩家二</strong><small id="gWhiteMeta">本回合 0 · 总回合 0</small></div><span class="chip-avatar white">○</span></div>
-<div class="floating match-chip" id="gomokuStatus">第 1/3 回合 · 第 1/3 局</div>
-<button aria-label="返回大厅" class="floating hud-btn hud-back" data-back="">←</button>
-<button aria-label="切换全屏" class="floating hud-btn hud-full" data-fullscreen="">⛶</button>
-<div class="floating control-dock">
-<button class="dock-btn" id="gUndo"><span class="ico">↶</span><span class="label-text">悔棋</span></button>
-<button class="dock-btn" id="gReset"><span class="ico">↻</span><span class="label-text">重开本局</span></button>
-<button class="dock-btn" id="gTheme"><span class="ico">🎨</span><span class="label-text">主题</span></button>
-<button class="dock-btn primary" id="gSettings"><span class="ico">⚙</span><span class="label-text">赛制设置</span></button>
-</div>
-<div class="board-note" id="gNote">点击交叉点落子 · 红点表示最后一步</div>
-</div>
-</div>
-</section>
-<section class="screen game-screen" id="bombScreen">
-<div class="game-stage">
-<div class="board-square bomb-square" data-theme="cyber" id="bombSquare">
-<div aria-label="躲炸弹棋盘" class="bomb-board" id="bombBoard"></div>
-<div class="floating player-chip left" id="bPlayer0"><span class="chip-avatar red">1</span><div class="chip-copy"><strong>红方</strong><small>左上角出发</small></div><span class="chip-score" id="bLife0">♥♥♥</span></div>
-<div class="floating player-chip right" id="bPlayer1"><span class="chip-score" id="bLife1">♥♥♥</span><div class="chip-copy"><strong>蓝方</strong><small>右下角出发</small></div><span class="chip-avatar blue">2</span></div>
-<div class="floating match-chip" id="bombStatus">红方行动</div>
-<button aria-label="返回大厅" class="floating hud-btn hud-back" data-back="">←</button>
-<button aria-label="切换全屏" class="floating hud-btn hud-full" data-fullscreen="">⛶</button>
-<div class="floating control-dock">
-<button class="dock-btn" id="bScan"><span class="ico">📡</span><span class="label-text">雷达</span></button>
-<button class="dock-btn" id="bReset"><span class="ico">↻</span><span class="label-text">新地图</span></button>
-<button class="dock-btn" id="bTheme"><span class="ico">🎨</span><span class="label-text">主题</span></button>
-<button class="dock-btn primary" id="bHelp"><span class="ico">?</span><span class="label-text">规则</span></button>
-</div>
-<div class="board-note">移动到发光相邻格 · 💎 为中央宝藏</div>
-</div>
-</div>
-</section>
-<section class="screen game-screen" id="ludoScreen">
-<div class="game-stage">
-<div class="board-square" id="ludoSquare">
-<canvas aria-label="飞行棋棋盘" height="900" id="ludoCanvas" width="900"></canvas>
-<div class="ludo-chip p0" id="lChip0"><span class="chip-avatar red">1</span><strong id="lName0">红方</strong><span class="plane-count" id="lCount0">⌂⌂</span></div>
-<div class="ludo-chip p1" id="lChip1"><span class="chip-avatar blue">2</span><strong id="lName1">蓝方</strong><span class="plane-count" id="lCount1">⌂⌂</span></div>
-<div class="ludo-chip p2" id="lChip2"><span class="chip-avatar green">3</span><strong id="lName2">绿方</strong><span class="plane-count" id="lCount2">⌂⌂</span></div>
-<div class="ludo-chip p3" id="lChip3"><span class="chip-avatar yellow">4</span><strong id="lName3">黄方</strong><span class="plane-count" id="lCount3">⌂⌂</span></div>
-<div class="floating match-chip" id="ludoStatus">红方掷骰</div>
-<button aria-label="返回大厅" class="floating hud-btn hud-back" data-back="">←</button>
-<button aria-label="切换全屏" class="floating hud-btn hud-full" data-fullscreen="">⛶</button>
-<div class="floating dice-center">
-<div aria-label="骰子点数 1" class="dice-scene" id="diceScene">
-<div class="dice-cube" id="diceCube">
-<div class="dice-face front d1"><i class="dot"></i></div>
-<div class="dice-face back d6"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
-<div class="dice-face right d3"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
-<div class="dice-face left d4"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
-<div class="dice-face top d2"><i class="dot"></i><i class="dot"></i></div>
-<div class="dice-face bottom d5"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
-</div>
-</div>
-<button class="roll-btn" id="rollDice">投掷骰子</button>
-</div>
-<div class="floating control-dock">
-<button class="dock-btn" id="ludoReset"><span class="ico">↻</span><span class="label-text">重开</span></button>
-<button class="dock-btn" id="ludoTheme"><span class="ico">🎨</span><span class="label-text">主题</span></button>
-<button class="dock-btn primary" id="ludoSettings"><span class="ico">⚙</span><span class="label-text">玩家设置</span></button>
-</div>
-</div>
-</div>
-</section>
-</main>
-</div>
-<div class="modal" id="resultModal"><div class="modal-card"><div class="modal-icon" id="resultIcon">🏆</div><h3 id="resultTitle">获胜</h3><p id="resultText"></p><div class="button-row"><button class="soft-btn" id="resultHome">返回大厅</button><button class="primary-btn" id="resultAgain">继续</button></div></div></div>
-<div class="modal" id="gomokuSettingsModal"><div class="modal-card"><div class="modal-icon">⚙️</div><h3>五子棋赛制设置</h3><p>每个回合包含若干局，回合结束后以本回合胜局数决定回合积分。</p><div class="settings-grid">
-<label>玩家一姓名<input id="gPlayerName0" maxlength="10" value="玩家一"/></label><label>玩家二姓名<input id="gPlayerName1" maxlength="10" value="玩家二"/></label>
-<label>总回合数<select id="gTotalRounds"><option>1</option><option selected="">3</option><option>5</option><option>7</option></select></label>
-<label>每回合局数<select id="gGamesPerRound"><option>1</option><option selected="">3</option><option>5</option><option>7</option><option>9</option></select></label>
-<label>棋盘风格<select id="gThemeSelect"><option value="maple">枫木经典</option><option value="walnut">胡桃木深色</option><option value="jade">青玉棋盘</option><option value="ink">水墨灰白</option></select></label>
-<label class="check-row"><input checked="" id="gAlternate" type="checkbox"/>每局交换黑白方</label>
-</div><div class="button-row"><button class="soft-btn" id="gSettingsCancel">取消</button><button class="primary-btn" id="gSettingsSave">保存并开始新比赛</button></div></div></div>
-<div class="modal" id="ludoSettingsModal"><div class="modal-card"><div class="modal-icon">✈️</div><h3>飞行棋玩家设置</h3><div class="settings-grid">
-<label>参与人数<select id="lPlayerCount"><option>2</option><option>3</option><option selected="">4</option></select></label><label>棋盘风格<select id="lThemeSelect"><option value="classic">经典玩具</option><option value="sky">天空云朵</option><option value="candy">糖果派对</option><option value="night">星空霓虹</option></select></label>
-<label>红方姓名<input id="lInput0" maxlength="8" value="红方"/></label><label>蓝方姓名<input id="lInput1" maxlength="8" value="蓝方"/></label><label>绿方姓名<input id="lInput2" maxlength="8" value="绿方"/></label><label>黄方姓名<input id="lInput3" maxlength="8" value="黄方"/></label>
-</div><div class="button-row"><button class="soft-btn" id="lSettingsCancel">取消</button><button class="primary-btn" id="lSettingsSave">保存并重开</button></div></div></div>
-<div class="modal" id="helpModal"><div class="modal-card"><div class="modal-icon">🧭</div><h3>躲炸弹规则</h3><p>红蓝双方轮流行动，每回合移动到上下左右相邻格。安全格会显示周围八格中的炸弹数量；踩中炸弹扣一条生命。每位玩家有一次雷达扫描，可揭开当前位置周边格子。最先抵达中央宝藏者获胜。</p><button class="primary-btn" id="helpClose">明白了</button></div></div>
-<div class="confetti" id="confetti"></div><div class="toast" id="toast"></div>
+<div id="app" class="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">◆</span><div><h1>百变棋盘</h1><small>BoardMix 3.2 · 五级电脑对手</small></div></div>
+    <div class="top-actions"><button id="soundBtn" class="icon-btn" aria-label="切换音效">🔊</button></div>
+  </header>
 
+  <main>
+    <section id="lobbyScreen" class="screen active lobby-screen">
+      <div class="hero">
+        <div><span class="eyebrow">Vercel · PWA · 本地AI</span><h2>一台手机，三款棋，随时开局。</h2><p>五子棋、躲炸弹和经典十字飞行棋全部支持真人或电脑，电脑难度分为 1–5 级。一级刻意友好，一年级小朋友也能轻松获胜。</p></div>
+        <div class="hero-badge"><strong>5</strong><span>级电脑难度</span></div>
+      </div>
+      <div class="game-grid">
+        <button class="game-card gomoku-card" data-open-game="gomoku"><div class="card-icon"><i class="stone dark"></i><i class="stone light"></i></div><h3>五子棋</h3><p>15×15 棋盘、多局赛制、五级电脑、自动换先。</p><span>进入棋局 →</span></button>
+        <button class="game-card bomb-card" data-open-game="bomb"><div class="card-icon">💣</div><h3>躲炸弹</h3><p>安全路径地图、线索推理、雷达扫描、无作弊电脑。</p><span>进入棋局 →</span></button>
+        <button class="game-card ludo-card" data-open-game="ludo"><div class="card-icon">✈</div><h3>经典飞行棋</h3><p>四角机场、十字航线、四架飞机、清晰骰子。</p><span>进入棋局 →</span></button>
+      </div>
+    </section>
 
-<noscript><div class="noscript">BoardMix 需要启用 JavaScript 才能运行。</div></noscript><script>
-if ('caches' in window) caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('boardmix-') && key !== 'boardmix-v3.1.3').map(key => caches.delete(key)))).catch(()=>{});
-</script><script defer="" src="/assets/app.js?v=3.1.3"></script></body>
+    <section id="gomokuScreen" class="screen game-screen">
+      <div class="game-shell">
+        <header class="game-header"><button class="round-btn" data-back aria-label="返回大厅">←</button><div><strong>五子棋</strong><span id="gomokuStatus">准备开局</span></div><button class="round-btn" data-fullscreen aria-label="全屏">⛶</button></header>
+        <div class="player-strip two">
+          <div id="gPlayer0Chip" class="player-chip"><span class="avatar black">●</span><div><b id="gPlayer0Name">玩家一</b><small id="gPlayer0Meta">真人 · 黑方</small></div><strong id="gPlayer0Score">0</strong></div>
+          <div id="gPlayer1Chip" class="player-chip reverse"><strong id="gPlayer1Score">0</strong><div><b id="gPlayer1Name">玩家二</b><small id="gPlayer1Meta">电脑3级 · 白方</small></div><span class="avatar white">○</span></div>
+        </div>
+        <div class="board-area"><div class="board-frame gomoku-frame"><canvas id="gomokuCanvas" width="900" height="900" aria-label="五子棋棋盘"></canvas><div id="gomokuThinking" class="thinking hidden">电脑思考中…</div></div></div>
+        <footer class="game-toolbar"><button id="gUndo">↶ 悔棋</button><button id="gRestart">↻ 重开本局</button><button id="gTheme">🎨 主题</button><button id="gSettings" class="primary">⚙ 设置</button></footer>
+      </div>
+    </section>
+
+    <section id="bombScreen" class="screen game-screen">
+      <div class="game-shell">
+        <header class="game-header"><button class="round-btn" data-back aria-label="返回大厅">←</button><div><strong>躲炸弹</strong><span id="bombStatus">红方行动</span></div><button class="round-btn" data-fullscreen aria-label="全屏">⛶</button></header>
+        <div class="player-strip two">
+          <div id="bPlayer0Chip" class="player-chip"><span class="avatar red">1</span><div><b id="bPlayer0Name">红方</b><small id="bPlayer0Meta">真人</small></div><strong id="bLife0">♥♥♥</strong></div>
+          <div id="bPlayer1Chip" class="player-chip reverse"><strong id="bLife1">♥♥♥</strong><div><b id="bPlayer1Name">蓝方</b><small id="bPlayer1Meta">电脑3级</small></div><span class="avatar blue">2</span></div>
+        </div>
+        <div class="board-area"><div id="bombFrame" class="board-frame bomb-frame" data-theme="cyber"><div id="bombBoard" class="bomb-board" aria-label="躲炸弹棋盘"></div><div id="bombThinking" class="thinking hidden">电脑分析线索中…</div></div></div>
+        <footer class="game-toolbar"><button id="bScan">📡 雷达</button><button id="bRestart">↻ 新地图</button><button id="bTheme">🎨 主题</button><button id="bSettings" class="primary">⚙ 设置</button></footer>
+      </div>
+    </section>
+
+    <section id="ludoScreen" class="screen game-screen">
+      <div class="game-shell ludo-shell">
+        <header class="game-header"><button class="round-btn" data-back aria-label="返回大厅">←</button><div><strong>经典飞行棋</strong><span id="ludoStatus">红方掷骰</span></div><button class="round-btn" data-fullscreen aria-label="全屏">⛶</button></header>
+        <div id="ludoPlayers" class="ludo-player-strip"></div>
+        <div class="board-area ludo-area">
+          <div class="board-frame ludo-frame">
+            <div id="ludoBoard" class="ludo-board" aria-label="经典十字飞行棋棋盘"></div>
+            <div class="dice-panel"><div id="die" class="die" aria-label="骰子点数 1"></div><strong id="dieValue">1</strong><button id="rollDice" class="roll-btn">投掷骰子</button></div>
+            <div id="ludoThinking" class="thinking hidden">电脑正在选择飞机…</div>
+          </div>
+        </div>
+        <footer class="game-toolbar"><button id="ludoRestart">↻ 重开</button><button id="ludoTheme">🎨 主题</button><button id="ludoSettings" class="primary">⚙ 玩家设置</button></footer>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="modal" class="modal" aria-hidden="true"><div class="modal-card"><button id="modalClose" class="modal-close" aria-label="关闭">×</button><div id="modalContent"></div></div></div>
+<div id="toast" class="toast"></div>
+
+<script type="module" src="/assets/app.js?v=3.2.0"></script>
+</body>
 </html>

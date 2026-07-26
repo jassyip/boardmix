@@ -1,9 +1,7 @@
 {
-  "name": "boardmix",
-  "private": true,
-  "version": "3.1.3",
-  "scripts": {
-    "dev": "npx --yes serve . -l 5173",
-    "check": "node --check assets/app.js"
-  }
+  "name":"boardmix",
+  "private":true,
+  "version":"3.2.0",
+  "type":"module",
+  "scripts":{"dev":"npx --yes serve . -l 5173","check":"node --check assets/app.js && node --check assets/core.js && node --check assets/gomoku.js && node --check assets/bomb.js && node --check assets/ludo.js"}
 }
